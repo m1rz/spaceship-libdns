@@ -88,12 +88,12 @@ func (p *Provider) toLibdnsRR(sr spaceshipRecordUnion, zone string) libdns.Recor
 			target = sr.TargetName
 		}
 		return libdns.ServiceBinding{
-			Name:     name,
-			TTL:      ttl,
-			Scheme:   "https",
-			Priority: uint16(sr.SvcPriority),
-			Target:   target,
-			Params:   params,
+			Name:         name,
+			TTL:          ttl,
+			Scheme:       "https",
+			Priority:     uint16(sr.SvcPriority),
+			Target:       target,
+			Params:       params,
 			ProviderData: sr,
 		}
 	}
@@ -109,7 +109,9 @@ func (p *Provider) fromLibdnsRR(lr libdns.Record, zone string) *spaceshipRecordU
 	if name == "" {
 		name = "@"
 	} else {
-		name = libdns.AbsoluteName(rr.Name, zone)
+		// Spaceship API requires the name parameter to exclude the domain/zone name
+		name = strings.TrimSuffix(rr.Name, ".")
+		name = strings.TrimSuffix(name, "."+zone)
 	}
 	rec := spaceshipRecordUnion{ResourceRecordBase: ResourceRecordBase{Name: name, Type: strings.ToUpper(rr.Type), TTL: int(rr.TTL.Seconds())}}
 
@@ -157,7 +159,7 @@ func (p *Provider) fromLibdnsRR(lr libdns.Record, zone string) *spaceshipRecordU
 		if strings.ToLower(svc.Scheme) == "https" {
 			rec.Type = "HTTPS"
 			rec.SvcPriority = int(svc.Priority)
-			rec.TargetName = svc.Target  // Use TargetName for API compatibility
+			rec.TargetName = svc.Target // Use TargetName for API compatibility
 			rec.SvcParams = svc.Params.String()
 			return &rec
 		}
@@ -180,4 +182,3 @@ func (p *Provider) fromLibdnsRR(lr libdns.Record, zone string) *spaceshipRecordU
 	}
 	return &rec
 }
-
